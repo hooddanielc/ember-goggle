@@ -4,6 +4,7 @@
 
 .better-ember-reporter header {
   height: 60px;
+  border-bottom: 1px solid rgba(64,66,68,.45);
 }
 
 .better-ember-reporter .item {
@@ -38,6 +39,28 @@
   cursor: pointer;
 }
 
+.better-ember-reporter .accordion .title .fa.fa-check {
+  color: #00B622;
+}
+
+.better-ember-reporter .accordion .title .fa.fa-close {
+  color: #ff0000;
+  display: none;
+}
+
+.better-ember-reporter .accordion .title.failed .fa.fa-check {
+  display: none;
+}
+
+.better-ember-reporter .accordion .title.pending .fa.fa-close,
+.better-ember-reporter .accordion .title.pending .fa.fa-check {
+  display: none;
+}
+
+.better-ember-reporter .accordion .title.failed .fa.fa-close {
+  display: inline-block;
+}
+
 .better-ember-reporter .accordion .title,
 .better-ember-reporter .accordion .content {
   padding: .75em 1em;
@@ -57,4 +80,39 @@
 
 .better-ember-reporter.hidePassed .suite .passed {
   display: none;
+}
+
+.better-ember-reporter .accordion .title > .fa-caret-down {
+  display: none;
+}
+
+.better-ember-reporter .accordion .title.active > .fa-caret-down {
+  display: inline-block;
+}
+
+.better-ember-reporter .accordion .title.active > .fa-caret-right {
+  display: none;
+}
+
+.better-ember-reporter .accordion.test > .passed {
+  background: #d1ffda;
+}
+
+.better-ember-reporter .accordion.test > .failed {
+  background: #ffd1d1;
+}
+
+.better-ember-reporter .accordion > .title.pending,
+.better-ember-reporter .accordion > .content.pending {
+  background: #ffeeb3;
+}
+
+#better-ember-reporter-grep {
+  border-radius: 4px 0 0 4px;
+}
+
+#better-ember-reporter-grep-button {
+  border-radius: 0 4px 4px 0;
+  border: 1px solid #cccccc;
+  border-left: none;
 }

@@ -9,35 +9,54 @@ let ReporterComponent = Ember.Component.extend({
   classNames: 'better-ember-reporter',
   classNameBindings: ['hidePassed:hidePassed'],
   runner: null,
+  suites: null,
   incSuite: 0,
   incTest: 0,
   hidePassed: false,
+  grep: '',
 
   layout: hbs`
     <header>
-      <form class="item left">
+      <form class="pure-form item left">
         <div class="item left">
-          <input class="hide-passed-box" type="checkbox" /> Hide Passed
+          <label for="better-ember-reporter-hidepassed">
+            <input id="better-ember-reporter-hidepassed" class="hide-passed-box" type="checkbox" /> Hide Passing
+          </label>
+        </div>
+        <div class="item left">
+          <input id="better-ember-reporter-grep" class="grep" type="text" placeholder="Filter by test title" /><button id="better-ember-reporter-grep-button" class="pure-button">Search</button>
         </div>
       </form>
     </header>
     <div class="container">
       <div class="suite accordion">
         {{#each suites as |suite|}}
-            <div class="title {{suite.state}} {{suite.expandState}}">{{suite.title}}</div>
-            <div class="content {{suite.state}} {{suite.expandState}}">
-              <div class="accordion test">
-                {{#each suite.betterTests as |test|}}
-                  <div class="title {{test.state}} {{test.expandState}}">{{test.title}}</div>
-                  <div class="content {{test.state}} {{test.expandState}}">
-                    <pre>{{{test.funcString}}}</pre>
-                    {{#if test.err}}
-                      <pre>{{test.err.message}}</pre>
-                    {{/if}}
-                  </div>
-                {{/each}}
-              </div>
+          <div class="title {{suite.state}} {{suite.expandState}}">
+            <i class="fa fa-check"></i>
+            <i class="fa fa-close"></i>
+            {{suite.title}}
+            <i class="fa fa-caret-right"></i>
+            <i class="fa fa-caret-down"></i>
+          </div>
+          <div class="content {{suite.state}} {{suite.expandState}}">
+            <div class="accordion test">
+              {{#each suite.betterTests as |test|}}
+                <div class="title {{test.state}} {{test.expandState}}">
+                  <i class="fa fa-check"></i>
+                  <i class="fa fa-close"></i>
+                  {{test.title}}
+                  <i class="fa fa-caret-right"></i>
+                  <i class="fa fa-caret-down"></i>
+                </div>
+                <div class="content {{test.state}} {{test.expandState}}">
+                  <pre>{{{test.funcString}}}</pre>
+                  {{#if test.err}}
+                    <pre>{{test.err.message}}</pre>
+                  {{/if}}
+                </div>
+              {{/each}}
             </div>
+          </div>
         {{/each}}
       </div>
     </div>
@@ -66,8 +85,15 @@ let ReporterComponent = Ember.Component.extend({
   initForm: function () {
     const params = this.getUrlParams();
 
-    this.$('form').change(() => {
-      this.navigateForNewParams();
+    this.$('header form').submit((e) => {
+      e.preventDefault();
+
+      Ember.run(() => {
+        if (this.get('grep') !== '' && this.$('#better-ember-reporter-grep').val() === '') {
+          this.set('grep', '');
+          this.navigateForNewParams(true);
+        }
+      });
     });
 
     this.$('.hide-passed-box').change(() => {
@@ -76,6 +102,26 @@ let ReporterComponent = Ember.Component.extend({
           this.set('hidePassed', true);
         } else {
           this.set('hidePassed', false);
+        }
+
+        this.navigateForNewParams(false);
+      });
+    });
+
+    this.$('#better-ember-reporter-grep').change(() => {
+      Ember.run(() => {
+        this.set('grep', this.$('#better-ember-reporter-grep').val());
+        this.navigateForNewParams(true);
+      });
+    });
+
+    this.$('#better-ember-reporter-grep').focusout(() => {
+      Ember.run(() => {
+        if (this.$('#better-ember-reporter-grep').val() === '') {
+          if (this.get('grep') !== '') {
+            this.set('grep', '');
+            this.navigateForNewParams(true);
+          }
         }
       });
     });
@@ -87,18 +133,29 @@ let ReporterComponent = Ember.Component.extend({
         this.set('hidePassed', true);
       });
     }
+
+    if (params.grep) {
+      Ember.run(() => {
+        this.$('#better-ember-reporter-grep').attr('value', params.grep);
+        this.set('grep', params.grep);
+      });
+    }
   },
 
-  navigateForNewParams: function () {
+  navigateForNewParams: function (forceReload) {
     let params = {};
 
     if (this.get('hidePassed')) {
       params.hidepassed = true;
     }
 
+    if (this.get('grep')) {
+      params.grep = this.get('grep');
+    }
+
     let url = '/tests?' + Ember.$.param(params);
 
-    if (window.history && window.history.pushState) {
+    if (window.history && window.history.pushState && !forceReload) {
       window.history.pushState(null, null, url);
     } else {
       window.location = url;
@@ -136,6 +193,31 @@ let ReporterComponent = Ember.Component.extend({
     return lines.join('\n');
   },
 
+  addStateToLastSuite: function () {
+    // look for a test failure
+    const suite = this.get('lastSuite');
+
+    if (!suite) {
+      return;
+    }
+
+    let failed = false;
+
+    for (let i = 0; i < suite.tests.length; ++i) {
+      if (suite.tests[i].state === 'failed') {
+        failed = true;
+        break;
+      }
+    }
+
+    if (!failed) {
+      suite.set('state', 'passed');
+      suite.set('expandState', '');
+    } else {
+      suite.set('state', 'failed');
+    }
+  },
+
   actions: {
     suite: function (suite) {
       if (suite.root) {
@@ -143,29 +225,11 @@ let ReporterComponent = Ember.Component.extend({
       }
 
       Ember.run(() => {
-        let lastSuite = this.get('lastSuite');
-
-        if (lastSuite) {
-          // look for a test failure
-          let failed = false;
-
-          for (let i = 0; i < lastSuite.tests.length; ++i) {
-            if (lastSuite.tests[i].state === 'failed') {
-              failed = true;
-              break;
-            }
-          }
-
-          if (!failed) {
-            lastSuite.set('state', 'passed');
-            lastSuite.set('expandState', '');
-          } else {
-            lastSuite.set('state', 'failed');
-          }
-        }
+        this.addStateToLastSuite();
 
         suite.expandState = 'active';
         suite._betterID = this.get('incSuite');
+        suite.state = 'pending';
         let objSuite = Ember.Object.create(suite);
         objSuite.set('betterTests', []);
         this.get('suites').pushObject(objSuite);
@@ -206,12 +270,13 @@ let ReporterComponent = Ember.Component.extend({
     },
 
     end: function () {
-      // TODO
-      // console.log('it ended');
+      Ember.run(() => {
+        this.addStateToLastSuite();
+      });
     },
 
     pending: function () {
-      console.log('pending');
+      console.log('pending', arguments);
     }
   }
 });
