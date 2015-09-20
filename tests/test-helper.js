@@ -49,7 +49,7 @@ let ReporterComponent = Ember.Component.extend({
                   <i class="fa fa-caret-down"></i>
                 </div>
                 <div class="content {{test.state}} {{test.expandState}}">
-                  <pre>{{{test.funcString}}}</pre>
+                  <pre><code data-code-idx="{{test._betterID}}" class="javascript">{{{test.funcString}}}</code></pre>
                   {{#if test.err}}
                     <pre>{{test.err.message}}</pre>
                   {{/if}}
@@ -258,11 +258,28 @@ let ReporterComponent = Ember.Component.extend({
     },
 
     testFinished: function (test) {
+      test._betterID = this.get('incTest');
       let suite = this.get('suites').objectAt(test.parent._betterID);
       test.funcString = this.normalizeSrc(test.fn.toString());
       test.expandState = test.fail ? 'active' : '';
       suite.get('betterTests').pushObject(Ember.Object.create(test));
       this.incrementProperty('incTest');
+
+      const addCodeHighlightWhenAvailable = () => {
+        setTimeout(() => {
+          Ember.run(() => {
+            let el = this.$('[data-code-idx="' + test._betterID + '"]')[0];
+
+            if (el) {
+              hljs.highlightBlock(this.$('[data-code-idx="' + test._betterID + '"]')[0]);
+            } else {
+              addCodeHighlightWhenAvailable();
+            }
+          });
+        }, 100);
+      };
+
+      addCodeHighlightWhenAvailable();
     },
 
     start: function () {
