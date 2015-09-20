@@ -9,30 +9,37 @@ let ReporterComponent = Ember.Component.extend({
   classNames: 'better-ember-reporter',
   classNameBindings: ['hidePassed:hidePassed'],
   runner: null,
-  inc: 0,
+  incSuite: 0,
+  incTest: 0,
   hidePassed: false,
 
   layout: hbs`
     <header>
-      <div class="item left">
-        <input class="hide-passed-box" type="checkbox" /> Hide Passed
-      </div>
+      <form class="item left">
+        <div class="item left">
+          <input class="hide-passed-box" type="checkbox" /> Hide Passed
+        </div>
+      </form>
     </header>
     <div class="container">
-      {{#each suites as |suite|}}
-        <div class="suite" data-id="{{suite._betterID}}">
-          <h3>{{suite.title}}</h3>
-          {{#each suite.betterTests as |test|}}
-            <div class="test {{test.state}} {{test.expandState}}">
-              <p class="title"><span class="arrow"></span> {{test.title}}</p>
-              <pre>{{{test.funcString}}}</pre>
-              {{#if test.err}}
-                <pre>{{test.err.message}}</pre>
-              {{/if}}
+      <div class="suite accordion">
+        {{#each suites as |suite|}}
+            <div class="title {{suite.state}} {{suite.expandState}}">{{suite.title}}</div>
+            <div class="content {{suite.state}} {{suite.expandState}}">
+              <div class="accordion test">
+                {{#each suite.betterTests as |test|}}
+                  <div class="title {{test.state}} {{test.expandState}}">{{test.title}}</div>
+                  <div class="content {{test.state}} {{test.expandState}}">
+                    <pre>{{{test.funcString}}}</pre>
+                    {{#if test.err}}
+                      <pre>{{test.err.message}}</pre>
+                    {{/if}}
+                  </div>
+                {{/each}}
+              </div>
             </div>
-          {{/each}}
-        </div>
-      {{/each}}
+        {{/each}}
+      </div>
     </div>
   `,
 
@@ -41,7 +48,28 @@ let ReporterComponent = Ember.Component.extend({
     this.set('suites', Ember.A());
   }),
 
-  initForm: Ember.on('didInsertElement', function () {
+  getUrlParams: function () {
+    let match;
+    const pl = /\+/g;
+    const search = /([^&=]+)=?([^&]*)/g;
+    const decode = function (s) { return decodeURIComponent(s.replace(pl, " ")); };
+    const query = window.location.search.substring(1);
+    const urlParams = {};
+
+    while (match = search.exec(query)) {
+      urlParams[decode(match[1])] = decode(match[2]);
+    }
+
+    return urlParams;
+  },
+
+  initForm: function () {
+    const params = this.getUrlParams();
+
+    this.$('form').change(() => {
+      this.navigateForNewParams();
+    });
+
     this.$('.hide-passed-box').change(() => {
       Ember.run(() => {
         if (this.$('.hide-passed-box')[0].checked) {
@@ -50,6 +78,38 @@ let ReporterComponent = Ember.Component.extend({
           this.set('hidePassed', false);
         }
       });
+    });
+
+    if ($.type(params.hidepassed) === 'string') {
+      this.$('.hide-passed-box').prop('checked', true);
+
+      Ember.run(() => {
+        this.set('hidePassed', true);
+      });
+    }
+  },
+
+  navigateForNewParams: function () {
+    let params = {};
+
+    if (this.get('hidePassed')) {
+      params.hidepassed = true;
+    }
+
+    let url = '/tests?' + Ember.$.param(params);
+
+    if (window.history && window.history.pushState) {
+      window.history.pushState(null, null, url);
+    } else {
+      window.location = url;
+    }
+  },
+
+  initAccordions: Ember.on('didInsertElement', function () {
+    Ember.$(document).on('click', '.better-ember-reporter .accordion .title', function () {
+      let el = Ember.$(this);
+      el.toggleClass('active');
+      el.next().toggleClass('active');
     });
   }),
 
@@ -87,7 +147,6 @@ let ReporterComponent = Ember.Component.extend({
 
         if (lastSuite) {
           // look for a test failure
-          let el = this.$('[data-id="' + lastSuite._betterID + '"]');
           let failed = false;
 
           for (let i = 0; i < lastSuite.tests.length; ++i) {
@@ -97,58 +156,58 @@ let ReporterComponent = Ember.Component.extend({
             }
           }
 
-          if (failed) {
-            el.addClass('failed');
+          if (!failed) {
+            lastSuite.set('state', 'passed');
+            lastSuite.set('expandState', '');
           } else {
-            el.addClass('passed');
+            lastSuite.set('state', 'failed');
           }
         }
 
-        suite._betterID = this.get('inc');
+        suite.expandState = 'active';
+        suite._betterID = this.get('incSuite');
         let objSuite = Ember.Object.create(suite);
         objSuite.set('betterTests', []);
         this.get('suites').pushObject(objSuite);
-        this.incrementProperty('inc');
-        this.set('lastSuite', suite);
+        this.incrementProperty('incSuite');
+        this.set('lastSuite', objSuite);
       });
     },
 
     testEnd: function () {
-      console.log('testEnd', arguments);
+      // TODO console.log('test end', arguments);
     },
 
     pass: function (test) {
       Ember.run(() => {
-        let suite = this.get('suites').objectAt(test.parent._betterID);
         test.pass = true;
-        test.funcString = this.normalizeSrc(test.fn.toString());
-        test.expandState = '';
-        suite.get('betterTests').pushObject(Ember.Object.create(test));
+        this.send('testFinished', test);
       });
     },
 
     fail: function (test, err) {
       Ember.run(() => {
-        let suite = this.get('suites').objectAt(test.parent._betterID);
         test.fail = true;
-        test.funcString = this.normalizeSrc(test.fn.toString());
         test.err = err;
-        test.expandState = 'expanded';
-        suite.get('betterTests').pushObject(Ember.Object.create(test));
+        this.send('testFinished', test);
       });
+    },
+
+    testFinished: function (test) {
+      let suite = this.get('suites').objectAt(test.parent._betterID);
+      test.funcString = this.normalizeSrc(test.fn.toString());
+      test.expandState = test.fail ? 'active' : '';
+      suite.get('betterTests').pushObject(Ember.Object.create(test));
+      this.incrementProperty('incTest');
     },
 
     start: function () {
-      console.log('start');
+      this.initForm();
     },
 
     end: function () {
-      // init expansion of test
-      this.$('.test .title').on('click', function () {
-        Ember.$(this).parent().toggleClass('expanded');
-      });
-
-      console.log('end');
+      // TODO
+      // console.log('it ended');
     },
 
     pending: function () {

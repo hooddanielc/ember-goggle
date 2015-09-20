@@ -24,58 +24,37 @@
 }
 
 .better-ember-reporter .suite {
-  overflow: hidden;
   margin-bottom: 10px;
 }
 
-.better-ember-reporter .suite .test {
-  margin-left: 10px;
-  margin-bottom: 10px;
-  height:20px;
-  padding: 5px;
-  border: 1px solid black;
+.better-ember-reporter .accordion {
+  border-radius: .28571429rem;
+  background: #fff;
+  box-shadow: 0 1px 2px 0 rgba(34,36,38,.15),0 0 0 1px rgba(34,36,38,.15);
   overflow: hidden;
 }
 
-.better-ember-reporter .suite .test .title {
-  padding: 0;
-  margin: 0;
-  line-height: 20px;
+.better-ember-reporter .accordion .title {
   cursor: pointer;
 }
 
-.better-ember-reporter .suite .test.expanded {
-  height: auto;
+.better-ember-reporter .accordion .title,
+.better-ember-reporter .accordion .content {
+  padding: .75em 1em;
 }
 
-.better-ember-reporter.hidePassed .suite.passed {
+.better-ember-reporter .accordion .content.active {
+  display: block;
+}
+
+.better-ember-reporter .accordion .content {
   display: none;
 }
 
-.better-ember-reporter.hidePassed .suite .test.passed {
+.better-ember-reporter .accordion .title:not(:first-child) {
+  border-top: 1px solid rgba(34,36,38,.15);
+}
+
+.better-ember-reporter.hidePassed .suite .passed {
   display: none;
-}
-
-.arrow {
-  display: block;
-  float: left;
-  width: 0;
-  height: 0;
-  border-top: 8px solid transparent;
-  border-bottom: 8px solid transparent;
-  border-left: 8px solid green;
-  margin: 1px;
-  margin-right: 10px;
-}
-
-.expanded .arrow {
-  display: block;
-  float: left;
-  width: 0;
-  height: 0;
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-top: 8px solid #f00;
-  margin: 2px 1px;
-  margin-right: 10px;
 }
