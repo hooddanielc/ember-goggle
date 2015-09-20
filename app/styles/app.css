@@ -1,0 +1,81 @@
+#mocha {
+  display: none;
+}
+
+.better-ember-reporter header {
+  height: 60px;
+}
+
+.better-ember-reporter .item {
+  line-height: 60px;
+  padding: 0 10px;
+}
+
+.better-ember-reporter .item.left {
+  float: left;
+}
+
+.better-ember-reporter .item.right {
+  float: right;
+}
+
+.better-ember-reporter .container {
+  padding: 10px;
+}
+
+.better-ember-reporter .suite {
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.better-ember-reporter .suite .test {
+  margin-left: 10px;
+  margin-bottom: 10px;
+  height:20px;
+  padding: 5px;
+  border: 1px solid black;
+  overflow: hidden;
+}
+
+.better-ember-reporter .suite .test .title {
+  padding: 0;
+  margin: 0;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.better-ember-reporter .suite .test.expanded {
+  height: auto;
+}
+
+.better-ember-reporter.hidePassed .suite.passed {
+  display: none;
+}
+
+.better-ember-reporter.hidePassed .suite .test.passed {
+  display: none;
+}
+
+.arrow {
+  display: block;
+  float: left;
+  width: 0;
+  height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 8px solid green;
+  margin: 1px;
+  margin-right: 10px;
+}
+
+.expanded .arrow {
+  display: block;
+  float: left;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid #f00;
+  margin: 2px 1px;
+  margin-right: 10px;
+}
